@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow exitState="true" initialize="init()"
+	xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	width="640" height="498" 
+	horizontalAlign="center" verticalAlign="middle" 
+	borderColor="#333333" cornerRadius="10" 
+	fontSize="16" fontWeight="bold"
+ 	close="titleWindow_close(event);"
+ 	showCloseButton="true">
+	<mx:Script>
+		<![CDATA[
+			import flash.sampler.Sample;
+			import mx.managers.PopUpManager;
+			import mx.controls.Alert;
+			import mx.controls.TextArea;
+			import mx.events.CloseEvent;
+			
+			public var externalXML:XML;
+			public var itemId:String;
+			
+			private function titleWindow_close(evt:CloseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+            }
+			
+			public function initPic():void
+			{
+				text.visible = false;
+				image.visible = true;
+				var source:String = "images/" + externalXML.item[itemId];
+				image.source = source;
+				image.percentWidth = 100;
+				image.height = 453;
+				image.maintainAspectRatio = true;
+			}
+			
+			public function initText():void
+			{
+				image.visible = false;
+				text.visible = true;
+				var html:String = "<textformat leading='12' leftmargin='10' rightmargin='10' indent='35'>";
+				if (externalXML.item[itemId].@title!=null && externalXML.item[itemId].@title!="")
+					html += "<font size='24'><b>" + externalXML.item[itemId].@title + "</b></font><br/>";
+				if (externalXML.item[itemId].@subtitle!=null && externalXML.item[itemId].@subtitle!="")
+					html += "<font size='20'><b>"+externalXML.item[itemId].@subtitle+ "</b></font><br/>"
+				if (html != "<textformat leading='12' leftmargin='10' rightmargin='10' indent='35'>")
+					html += "<br/>";
+				html += "<p align='left'><font size='18'>"+externalXML.item[itemId]+"</font></p></textformat>";
+				text.htmlText = html;;
+			}
+		]]>
+	</mx:Script>
+	<mx:Image id="image" x="0" y="0" verticalAlign="middle" horizontalAlign="center"/>
+	<mx:TextArea x="0" y="0" width="100%" height="100%" id="text" editable="false" fontSize="16" fontWeight="normal" textAlign="center" color="#D97600" paddingTop="8"/>
+</mx:TitleWindow>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.IndexChangedEvent;
+			import mx.controls.Image;
+			import mx.collections.ArrayCollection;
+			import mx.core.*;
+			import mx.controls.*;
+			import mx.managers.PopUpManager;
+			import mx.managers.CursorManager;
+			
+			private var initPic:Function;
+			private var setTargetInfo:Function;
+			private var imageInfo:ArrayCollection;
+			private var imageBack:Canvas;
+			static public var externalXML:XML;
+			private var initX:int;
+			public var centerFrame:Sprite;
+			public var border:Sprite;
+			public var comp: UIComponent = new UIComponent();
+			static public var ifBig:Boolean = false;
+			static public var ifSmall:Boolean = true;
+			
+			public function setShell(_initPic:Function, _setTargetInfo:Function, _externalXML:XML, _imageBack:Canvas, _imageInfo:ArrayCollection):void
+			{
+				this.percentWidth = 100;
+				this.percentHeight = 100;
+				imageBack = _imageBack;
+				externalXML = _externalXML;
+				initPic = _initPic;
+				imageInfo = _imageInfo;
+				setTargetInfo = _setTargetInfo;
+				init();
+			}
+			public function frame(i:int):void
+			{
+				var obj:Object = new Object();
+				obj.x1 = externalXML.item[i].@x1;
+				obj.y1 = externalXML.item[i].@y1;
+				obj.x2 = externalXML.item[i].@x2;
+				obj.y2 = externalXML.item[i].@y2;
+				obj.type = externalXML.item[i].@type;
+				obj.title = externalXML.item[i].@title;
+				obj.value = externalXML.item[i];
+				var center:Sprite = new Sprite();
+          		var border:Sprite = new Sprite();
+          		center.graphics.clear();
+          		border.graphics.clear();
+          		center.name = i.toString();
+          		border.name = i.toString();
+          		center.graphics.beginFill(0xff0000);
+          		center.graphics.drawRoundRect(obj.x1, obj.y1, obj.x2-obj.x1, obj.y2-obj.y1, 10);
+           		center.graphics.endFill();
+           		center.alpha = 0;
+           		center.addEventListener(MouseEvent.MOUSE_OVER, mouseOverLink);
+           		center.addEventListener(MouseEvent.MOUSE_OUT, mouseOutLink);
+           		center.addEventListener(MouseEvent.CLICK, mouseClick);
+           			
+           		border.graphics.lineStyle(3,0xff0000,1);
+           		border.graphics.drawRoundRect(obj.x1, obj.y1, obj.x2-obj.x1, obj.y2-obj.y1, 5);
+	           	border.alpha = 0;
+	           		
+	          	comp.addChild(center);
+	          	comp.addChild(border);
+			}
+			public function init():void
+			{
+				var itemLen:int = externalXML.item.length();
+				for(var i:int=0; i<itemLen; i++)
+				{
+					frame(i);
+				}
+				imageBack.addChild(comp);
+			}
+			public function mouseOverLink(event:MouseEvent):void
+          	{
+          		var target:Sprite = event.currentTarget as Sprite;
+          		target.buttonMode = true;
+          		var title:String = externalXML.item[target.name].@title
+          		var type:String = externalXML.item[target.name].@type
+          		if (type == "image")
+          			setTargetInfo("图片");
+          		else
+          		{
+	          		if(title != "")
+	          			setTargetInfo(externalXML.item[target.name].@title);
+	          		else
+	          			setTargetInfo(externalXML.item[target.name]);
+          		}
+          		comp.getChildAt(comp.getChildIndex(target)+1).alpha = 1;
+          	}
+          	
+          	public function mouseOutLink(event:MouseEvent):void
+          	{
+          		var target:Sprite = event.currentTarget as Sprite;
+          		setTargetInfo("", true);
+          		comp.getChildAt(comp.getChildIndex(target)+1).alpha = 0;
+          	}
+          	
+          	public function mouseClick(event:MouseEvent):void
+          	{
+          		var target:Sprite = event.currentTarget as Sprite;
+          		if(externalXML.item[target.name].@type == "link")
+          		{
+	          		var source:String = "images/" + externalXML.item[target.name] + ".jpg";
+	          		for(var i:int=0; i<imageInfo.length; i++)
+	          		{
+	          			if(imageInfo.getItemAt(i).source.toLowerCase() == source.toLowerCase())
+	          			{
+	          				initPic(i);
+	          				break;
+	          			}
+	          		}
+          		}
+          		else if(externalXML.item[target.name].@type == "text")
+          		{
+          			var popup:popUp = popUp(PopUpManager.createPopUp(DisplayObject(Application.application), popUp, true));
+          			popup.externalXML = externalXML;
+          			popup.itemId = target.name;
+          			popup.initText();
+          			PopUpManager.centerPopUp(popup);
+          		}
+          		else if(externalXML.item[target.name].@type == "image")
+          		{
+          			var popup:popUp = popUp(PopUpManager.createPopUp(DisplayObject(Application.application), popUp, true));
+          			popup.externalXML = externalXML;
+          			popup.itemId = target.name;
+          			popup.initPic();
+          			PopUpManager.centerPopUp(popup);
+          		}
+          	}
+		]]>
+	</mx:Script>
+</mx:Canvas>

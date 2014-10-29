@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	layout="absolute"
+	backgroundColor="#888888"
+	backgroundGradientAlphas="[1.0, 1.0]"
+	backgroundGradientColors="[#888888,#0F0F0F]"
+	initialize="init()">
+	<mx:Style>  
+        .leftButton {
+               overSkin:Embed(source="images/button/left_hover.png");
+               upSkin:Embed(source="images/button/left.png");
+               downSkin:Embed(source="images/button/left.png");
+        }
+        .rightButton {
+               overSkin:Embed(source="images/button/right_hover.png");
+               upSkin:Embed(source="images/button/right.png");
+               downSkin:Embed(source="images/button/right.png");
+        }
+        .browseButton {
+               overSkin:Embed(source="images/button/see_browse.hover.png");
+               upSkin:Embed(source="images/button/see_browse.png");
+               downSkin:Embed(source="images/button/see_browse.png");
+        }
+        List {
+		   backgroundAlpha: 0.6;
+		   alternatingItemColors: #fdfaf3, #ffffff;
+		   rollOverColor: #ffffcc;
+		   borderStyle: solid;
+		   borderThickness: 4;
+		   borderColor: #ff0000;
+		   selectionColor: #FFCC00;
+		   color: #555555;
+		   textIndent: 2;
+		   letterSpacing: 0;
+		   selectionDuration: 0;
+		   dropShadowEnabled: true;
+		   fontWeight: bold;
+		   fontSize: 13;
+		   cornerRadius: 7;
+		   shadowDistance: 9;
+		   shadowDirection: right;
+		}
+    </mx:Style>
+	<mx:Script>
+		<![CDATA[
+			import mx.preloaders.Preloader;
+			import mx.events.IndexChangedEvent;
+			import mx.collections.*;
+			import mx.rpc.http.HTTPService;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			import mx.events.ListEvent;
+			
+			[Bindable]
+			private var externalXML:XML;
+			[Bindable]
+        	private var imagesInfo:ArrayCollection = new ArrayCollection();
+        	[Bindable]
+        	private var shell:imageShell;
+        	[Bindable]
+        	private var navItems:Array = new Array;
+        	
+			public var itemLength:int = 0;
+        	public var currentImage:int = 0;
+        	
+        	private var loadedImageNumber:int = 0;
+        	
+			public function init():void
+			{
+				var httpService:HTTPService = new HTTPService();
+				httpService.url = encodeURI("xml/menu.xml");
+				httpService.resultFormat = "xml";
+				httpService.addEventListener(FaultEvent.FAULT, onFaultHttpService);
+				httpService.addEventListener(ResultEvent.RESULT, onResultHttpService);
+				httpService.send();
+			} 
+			public function onFaultHttpService(event:FaultEvent):void
+			{
+				Alert.show("Unable to load menu Information.");
+			}
+			public function onResultHttpService(event:ResultEvent):void
+			{
+				externalXML=new XML(event.result);
+				itemLength = externalXML.item.length();
+				imagesInfo.removeAll();
+				for(var i:int=0; i<itemLength; i++)
+				{
+					var source:String = "images/" + externalXML.item[i].@image;
+					imagesInfo.addItem({source: source, title: externalXML.item[i]});
+					var _loader:Loader = new Loader();
+					_loader.contentLoaderInfo.addEventListener(Event.COMPLETE,function(e:Event)
+					{
+						//mx.controls.Alert.show("in loader event");
+						loadedImageNumber ++;
+						progress.setProgress(loadedImageNumber, itemLength);
+						if (loadedImageNumber == itemLength)
+						{
+							bar.enabled = true;	
+							loading.height = 0;
+							image.height = 614;
+							
+							navList.visible = true;
+						}
+					})
+					_loader.load(new URLRequest(encodeURI(source)));
+					
+				}
+				/*
+				for(var i:int=0; i<itemLength; i++)
+				{
+					var source:String = "images/" + externalXML.item[i].@image;
+					 
+				}*/	
+				navList.dataProvider = imagesInfo;	
+				initPic(0);
+			}
+			public function loadInfo(event:ResultEvent):void
+			{
+				externalXML=new XML(event.result);
+				shell = new imageShell();
+				shell.setShell(initPic, setTargetInfo, externalXML, imageBack, imagesInfo);
+				this.addChild(shell);
+			}
+			public function initPic(index:int):void
+			{
+				if(shell != null)
+				{
+					this.removeChild(shell);
+					for(var i:int=0; i<imageBack.getChildren().length; i++)
+						imageBack.removeChildAt(i);
+					shell = null;
+				}
+				setTargetInfo(imagesInfo.getItemAt(index).title);
+				currentImage = index;
+				image.source = imagesInfo.getItemAt(index).source;
+				var url:String = imagesInfo.getItemAt(index).source;
+				url = encodeURI("xml/" + url.slice(7, url.length-4) + ".xml");
+				var httpService:HTTPService = new HTTPService();;
+				httpService.url = url;
+				httpService.resultFormat = "xml";
+				httpService.addEventListener(ResultEvent.RESULT, loadInfo);
+				httpService.send();
+			}
+			public function picChange(event:MouseEvent):void
+			{
+				var target:String = event.target.id;
+				if(event.target.id == "pre" && currentImage>0)
+					currentImage = currentImage - 1;
+				if(event.target.id == "next")
+					currentImage = (currentImage+1)%itemLength;
+				if(event.target.id == "menu")
+					currentImage = 1;
+				if(event.target.id == "first")
+					currentImage = 0;
+				initPic(currentImage);
+			}
+			public function setTargetInfo(info:String, mouseOver:Boolean=false):void
+			{
+				if(!mouseOver)
+					currentTargetInfo.text = info;
+				else
+					currentTargetInfo.text = imagesInfo.getItemAt(currentImage).title;
+			}
+			private function itemClick(e:ListEvent):void
+			{
+				initPic(List(e.target).selectedIndex);
+			}
+			private function showHideNav():void
+			{
+				if (navList.visible == true)
+					navList.visible = false;
+				else
+					navList.visible = true;
+			}
+		]]>
+	</mx:Script>     
+	<mx:Fade id="fadeIn" duration="1000" alphaFrom="0.0" alphaTo="1.0"/>
+	<mx:Fade id="fadeOut" duration="1000" alphaFrom="1.0" alphaTo="0.0"/>
+	<mx:Zoom id="zoomIn" duration="500" zoomHeightFrom="0.2" zoomHeightTo="1.0" originY="45"/>
+	<mx:Zoom id="zoomOut" duration="500" zoomHeightFrom="1.0" zoomHeightTo="0.2" originY="45"/>
+	<mx:ApplicationControlBar id="bar" width="900" y="5" fillAlphas="[1.0, 1.0]" height="50" fillColors="[#333333, #0F0F0F]" horizontalCenter="0" enabled="false">
+		<!--
+		<mx:TextArea id="currentTargetInfo" wordWrap="false"
+			height="26" backgroundColor="#F7AAAA" borderColor="#FD4B4B" borderThickness="2" cornerRadius="7" 
+			alpha="0.6" width="100%" backgroundAlpha="1.0" textAlign="left" 
+			fontSize="14" fontWeight="bold" editable="false"/>
+		-->
+		<mx:Button width="32" height="26" styleName="browseButton" id="nav" toolTip="版面导航开关" click="showHideNav()"/>
+		<mx:Label id="currentTargetInfo" width="100%" textAlign="left" fontSize="14" fontWeight="bold" color="white" truncateToFit="true" >
+		</mx:Label>
+		<mx:Button width="50" height="50" styleName="leftButton" id="pre" click="picChange(event)"/>
+		<mx:Button label="目录" width="55" height="34" fontSize="14" id="menu" click="picChange(event)" color="#fcfcfc"/>
+		<mx:Button label="封面" width="55" height="34" fontSize="14" id="first" click="picChange(event)" color="#fcfcfc"/>
+		<mx:Button width="50" height="50" styleName="rightButton" id="next" click="picChange(event)"/>
+	</mx:ApplicationControlBar>
+	<mx:HBox width="900" height="614" id="loading" verticalAlign="middle" horizontalAlign="center" borderColor="white" horizontalCenter="0" >
+		<mx:ProgressBar label="加载内容..." id="progress" fontSize="14" color="white" width="320" mode="manual"/>
+	</mx:HBox>
+	<mx:Image id="image" scaleContent="false" autoLoad="true" x="{this.width/2-image.width/2}" y="55" completeEffect="{fadeIn}" height="0"/>
+	<mx:Canvas id="imageBack" x="{this.width/2-image.width/2}" y="55" />
+	<mx:List x="{this.width/2-434}" y="45" id="navList" labelField="title" width="260" height="430" 
+		itemClick="itemClick(event)" visible="false" showEffect="{zoomIn}" hideEffect="{zoomOut}"/>
+</mx:Application>
